@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { X, FileText, Download, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Note } from "@/data/types";
-import { deleteNote } from "@/app/actions";
+import { deleteNote, checkAdminStatus } from "@/app/actions";
 import UploadModal from "./UploadModal";
 import JSZip from "jszip";
 
@@ -17,6 +17,15 @@ interface FolderViewModalProps {
 export default function FolderViewModal({ isOpen, onClose, subject, notes }: FolderViewModalProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useState(() => {
+        const checkAuth = async () => {
+            const status = await checkAdminStatus();
+            setIsAdmin(status);
+        };
+        checkAuth();
+    });
 
     const handleDelete = async (noteId: string, downloadUrl: string) => {
         if (confirm("Are you sure you want to delete this file?")) {
@@ -93,14 +102,16 @@ export default function FolderViewModal({ isOpen, onClose, subject, notes }: Fol
                                         {isZipping ? "Creating..." : "ZIP All"}
                                     </motion.button>
                                 )}
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setIsUploadOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full shadow-lg shadow-primary/20 text-xs font-bold"
-                                >
-                                    + Add
-                                </motion.button>
+                                {isAdmin && (
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setIsUploadOpen(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full shadow-lg shadow-primary/20 text-xs font-bold"
+                                    >
+                                        + Add
+                                    </motion.button>
+                                )}
                                 <button
                                     onClick={onClose}
                                     className="text-slate-300 hover:text-slate-600 transition-colors p-2 bg-slate-50 rounded-full"
@@ -146,17 +157,19 @@ export default function FolderViewModal({ isOpen, onClose, subject, notes }: Fol
                                             >
                                                 <Download size={18} />
                                             </a>
-                                            <button
-                                                onClick={() => handleDelete(note._id || note.id!, note.downloadUrl)}
-                                                disabled={deletingId === (note._id || note.id)}
-                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                            >
-                                                {deletingId === (note._id || note.id) ? (
-                                                    <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin block"></span>
-                                                ) : (
-                                                    <Trash2 size={18} />
-                                                )}
-                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDelete(note._id || note.id!, note.downloadUrl)}
+                                                    disabled={deletingId === (note._id || note.id)}
+                                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                >
+                                                    {deletingId === (note._id || note.id) ? (
+                                                        <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin block"></span>
+                                                    ) : (
+                                                        <Trash2 size={18} />
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
                                     </motion.div>
                                 ))
