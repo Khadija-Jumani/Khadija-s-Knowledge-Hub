@@ -12,20 +12,35 @@ const navLinks = [
     { name: "Contact", href: "#contact" },
 ];
 
+import { checkAdminStatus, logoutAdmin } from "@/app/actions";
 import UploadModal from "./UploadModal";
+import AdminLoginModal from "./AdminLoginModal";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
+        const checkAuth = async () => {
+            const status = await checkAdminStatus();
+            setIsAdmin(status);
+        };
+        checkAuth();
+
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
         };
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    const handleLogout = async () => {
+        await logoutAdmin();
+        setIsAdmin(false);
+    };
 
     return (
         <>
@@ -35,10 +50,15 @@ export default function Navbar() {
                     scrolled ? "bg-white/90 backdrop-blur-xl shadow-sm py-3 border-b border-primary/10" : "bg-transparent py-5"
                 )}
             >
-                <Link href="/" className="text-2xl font-bold font-heading text-primary relative group">
-                    Khadija's Knowledge Hub
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-                </Link>
+                <div className="flex flex-col">
+                    <Link href="/" className="text-2xl font-bold font-heading text-primary relative group">
+                        Khadija's Knowledge Hub
+                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                    </Link>
+                    {isAdmin && (
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1 ml-0.5">Admin Mode</span>
+                    )}
+                </div>
 
                 {/* Desktop Nav */}
                 <div className="hidden md:flex items-center gap-8">
@@ -56,15 +76,34 @@ export default function Navbar() {
                             </Link>
                         </motion.div>
                     ))}
-                    <motion.button
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        onClick={() => setIsUploadOpen(true)}
-                        className="bg-primary text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
-                    >
-                        Upload Note
-                    </motion.button>
+                    {isAdmin ? (
+                        <div className="flex items-center gap-4">
+                            <motion.button
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                onClick={() => setIsUploadOpen(true)}
+                                className="bg-primary text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
+                            >
+                                Upload Note
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleLogout}
+                                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                                Logout
+                            </motion.button>
+                        </div>
+                    ) : (
+                        <button
+                            onDoubleClick={() => setIsAdminLoginOpen(true)}
+                            className="bg-primary/5 text-transparent px-5 py-2 rounded-full text-sm font-bold cursor-default select-none"
+                        >
+                            Upload Note
+                        </button>
+                    )}
                 </div>
 
                 {/* Mobile Menu Button */}
@@ -91,17 +130,39 @@ export default function Navbar() {
                                     {link.name}
                                 </Link>
                             ))}
-                            <button
-                                onClick={() => { setIsOpen(false); setIsUploadOpen(true); }}
-                                className="bg-primary text-white px-8 py-4 rounded-full text-lg font-bold shadow-xl shadow-primary/20 hover:bg-primary/90 transition-colors"
-                            >
-                                Upload Note
-                            </button>
+                            {isAdmin ? (
+                                <>
+                                    <button
+                                        onClick={() => { setIsOpen(false); setIsUploadOpen(true); }}
+                                        className="bg-primary text-white px-8 py-4 rounded-full text-lg font-bold shadow-xl shadow-primary/20 hover:bg-primary/90 transition-colors"
+                                    >
+                                        Upload Note
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsOpen(false); handleLogout(); }}
+                                        className="text-slate-400 font-bold"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    onDoubleClick={() => { setIsOpen(false); setIsAdminLoginOpen(true); }}
+                                    className="text-slate-100/50 font-bold"
+                                >
+                                    .
+                                </button>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
             </nav>
             <UploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
+            <AdminLoginModal
+                isOpen={isAdminLoginOpen}
+                onClose={() => setIsAdminLoginOpen(false)}
+                onSuccess={() => setIsAdmin(true)}
+            />
         </>
     );
 }
