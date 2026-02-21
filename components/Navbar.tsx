@@ -97,12 +97,12 @@ export default function Navbar() {
                             </motion.button>
                         </div>
                     ) : (
-                        <button
+                        <div
                             onDoubleClick={() => setIsAdminLoginOpen(true)}
-                            className="bg-primary/5 text-transparent px-5 py-2 rounded-full text-sm font-bold cursor-default select-none"
+                            className="bg-primary/5 text-primary/40 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest cursor-default select-none border border-primary/10"
                         >
-                            Upload Note
-                        </button>
+                            Academic Hub
+                        </div>
                     )}
                 </div>
 
@@ -146,12 +146,12 @@ export default function Navbar() {
                                     </button>
                                 </>
                             ) : (
-                                <button
+                                <div
                                     onDoubleClick={() => { setIsOpen(false); setIsAdminLoginOpen(true); }}
-                                    className="text-slate-100/50 font-bold"
+                                    className="text-slate-300 text-xs font-bold uppercase tracking-widest"
                                 >
-                                    .
-                                </button>
+                                    Academic Hub
+                                </div>
                             )}
                         </motion.div>
                     )}
