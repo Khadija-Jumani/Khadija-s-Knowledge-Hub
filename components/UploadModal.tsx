@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, UploadCloud, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { uploadNote } from '@/app/actions'; // Import server action
+import { cn } from '@/lib/utils';
 
 interface UploadModalProps {
     isOpen: boolean;
