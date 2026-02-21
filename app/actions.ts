@@ -139,6 +139,51 @@ export async function checkAdminStatus() {
     return isAdmin;
 }
 
+export async function saveNoteMetadata(data: {
+    title: string;
+    subject: string;
+    description: string;
+    category?: string;
+    files: { url: string; key: string; name: string }[];
+    password?: string;
+}) {
+    try {
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const cookieStore = await cookies();
+        const isAdmin = cookieStore.get("admin_auth")?.value === adminPassword;
+
+        if (!isAdmin && data.password !== adminPassword) {
+            return { success: false, message: "Incorrect Admin Password." };
+        }
+
+        await connectToDB();
+
+        const savePromises = data.files.map((file) => {
+            const fileTitle = data.files.length > 1 ? `${data.title} - ${file.name}` : data.title;
+
+            const newNote = new Note({
+                title: fileTitle,
+                subject: data.subject,
+                category: data.category || "General",
+                description: data.description,
+                date: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+                downloadUrl: file.url,
+                fileKey: file.key,
+            });
+
+            return newNote.save();
+        });
+
+        await Promise.all(savePromises);
+
+        revalidatePath("/");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Save metadata error:", error);
+        return { success: false, message: `System Error: ${error.message || "Unknown error"}` };
+    }
+}
+
 export async function getNotes() {
     let mongoNotes: any[] = [];
     let localNotes: any[] = [];
