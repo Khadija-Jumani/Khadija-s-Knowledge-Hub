@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { Code, Database, PenTool, Briefcase, FileText, Trash2, Download } from "lucide-react";
+import { deleteNote } from "@/app/actions";
 
 const categoryIcons = {
     "Computer Science": Code,
