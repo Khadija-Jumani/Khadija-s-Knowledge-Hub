@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { X, UploadCloud, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { uploadNote } from '@/app/actions'; // Import server action
+import { saveNoteMetadata } from '@/app/actions'; // Import updated server action
 import { cn } from '@/lib/utils';
+import { useUploadThing } from '@/lib/uploadthing';
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -14,6 +15,17 @@ interface UploadModalProps {
 export default function UploadModal({ isOpen, onClose, prefilledSubject }: UploadModalProps) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    const { startUpload } = useUploadThing("noteUploader", {
+        onUploadProgress: (p) => setUploadProgress(p),
+        onClientUploadComplete: () => setUploadProgress(0),
+        onUploadError: (e) => {
+            console.error(e);
+            setMessage(`Upload Error: ${e.message}`);
+            setLoading(false);
+        }
+    });
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -21,29 +33,60 @@ export default function UploadModal({ isOpen, onClose, prefilledSubject }: Uploa
         setMessage(null);
 
         const formData = new FormData(e.currentTarget);
+        const title = formData.get("title") as string;
+        const subject = formData.get("subject") as string;
+        const category = formData.get("category") as string || "General";
+        const description = formData.get("description") as string;
+        const password = formData.get("password") as string;
+        const files = formData.getAll("file") as File[];
+
+        if (!files.length) {
+            setMessage("Please select at least one file.");
+            setLoading(false);
+            return;
+        }
 
         try {
-            // Call server action
-            const result = await uploadNote(formData);
+            // 1. Upload files directly to UploadThing from client
+            const uploadedFiles = await startUpload(files);
+
+            if (!uploadedFiles || uploadedFiles.length === 0) {
+                throw new Error("Upload failed or returned no files.");
+            }
+
+            // 2. Save metadata to MongoDB via Server Action
+            const result = await saveNoteMetadata({
+                title,
+                subject,
+                category,
+                description,
+                password,
+                files: uploadedFiles.map(f => ({
+                    url: f.url,
+                    key: f.key,
+                    name: f.name
+                }))
+            });
 
             if (result && result.success) {
-                alert("Note uploaded successfully!");
+                alert("Note(s) uploaded successfully!");
                 onClose();
             } else {
-                setMessage(result?.message || "Upload failed. Please try again.");
+                setMessage(result?.message || "Metadata saving failed.");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setMessage("An error occurred.");
+            setMessage(error.message || "An unexpected error occurred.");
         } finally {
             setLoading(false);
+            setUploadProgress(0);
         }
     };
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-primary/10 backdrop-blur-md">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/10 backdrop-blur-md">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -71,10 +114,10 @@ export default function UploadModal({ isOpen, onClose, prefilledSubject }: Uploa
                                 animate={{ opacity: 1, y: 0 }}
                                 className={cn(
                                     "p-4 rounded-2xl mb-6 text-sm font-bold flex items-center gap-3",
-                                    message.includes("success") ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                                    message.toLowerCase().includes("success") ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                                 )}
                             >
-                                {message.includes("success") ? "✅" : "⚠️"} {message}
+                                {message.toLowerCase().includes("success") ? "✅" : "⚠️"} {message}
                             </motion.div>
                         )}
 
@@ -109,7 +152,7 @@ export default function UploadModal({ isOpen, onClose, prefilledSubject }: Uploa
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-bold text-primary mb-2 uppercase tracking-widest">Select Files (Max 10)</label>
+                                <label className="block text-[10px] font-bold text-primary mb-2 uppercase tracking-widest">Select Files (Max 10 / 32MB each)</label>
                                 <input
                                     type="file"
                                     name="file"
@@ -117,7 +160,7 @@ export default function UploadModal({ isOpen, onClose, prefilledSubject }: Uploa
                                     required
                                     className="w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary file:text-white hover:file:bg-primary/90 transition-all cursor-pointer"
                                 />
-                                <p className="text-[10px] text-slate-400 mt-2 font-medium italic">You can select multiple files at once.</p>
+                                <p className="text-[10px] text-slate-400 mt-2 font-medium italic">ZIP and other large files are now supported.</p>
                             </div>
 
                             <div>
@@ -136,9 +179,21 @@ export default function UploadModal({ isOpen, onClose, prefilledSubject }: Uploa
                                 whileTap={{ scale: 0.98 }}
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-primary text-white py-5 rounded-[2rem] font-bold shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3 disabled:opacity-50 mt-4"
+                                className="w-full bg-primary text-white py-5 rounded-[2rem] font-bold shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50 mt-4 overflow-hidden relative"
                             >
-                                {loading ? <Loader2 className="animate-spin" /> : <><UploadCloud size={20} /> Upload Files</>}
+                                {loading ? (
+                                    <>
+                                        <div className="flex items-center gap-3">
+                                            <Loader2 className="animate-spin" size={20} />
+                                            <span>{uploadProgress > 0 ? `Uploading (${uploadProgress}%)` : "Processing..."}</span>
+                                        </div>
+                                        {uploadProgress > 0 && (
+                                            <div className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                        )}
+                                    </>
+                                ) : (
+                                    <><UploadCloud size={20} /> Upload Files</>
+                                )}
                             </motion.button>
                         </form>
                     </motion.div>
