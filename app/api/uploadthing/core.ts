@@ -4,10 +4,10 @@ const f = createUploadthing();
 
 export const ourFileRouter = {
     noteUploader: f({
-        pdf: { maxFileSize: "16MB", maxFileCount: 1 },
-        text: { maxFileSize: "16MB", maxFileCount: 1 },
-        image: { maxFileSize: "16MB", maxFileCount: 1 },
-        blob: { maxFileSize: "16MB", maxFileCount: 1 },
+        pdf: { maxFileSize: "32MB", maxFileCount: 10 },
+        text: { maxFileSize: "32MB", maxFileCount: 10 },
+        image: { maxFileSize: "32MB", maxFileCount: 10 },
+        blob: { maxFileSize: "32MB", maxFileCount: 10 },
     })
         .onUploadComplete(async ({ metadata, file }) => {
             console.log("Upload complete for userId:", metadata);
