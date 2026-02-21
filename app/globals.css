@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --font-heading: var(--font-outfit);
+  --font-body: var(--font-inter);
+
+  --color-background: #fdfbff;
+  --color-foreground: #1c1b1f;
+  --color-primary: #7c3dff;
+  --color-secondary: #9d6eff;
+  --color-accent: #f3f0ff;
+  --color-card-bg: #ffffff;
+  --color-muted-text: #625b71;
+
+  --animate-text-gradient: text-gradient 1.5s linear infinite;
+
+  @keyframes text-gradient {
+    to {
+      background-position: 200% center;
+    }
+  }
+}
+
+.glass {
+  @apply backdrop-blur-md border-b border-white/20;
+  background-color: rgba(253, 251, 255, 0.8);
+}
