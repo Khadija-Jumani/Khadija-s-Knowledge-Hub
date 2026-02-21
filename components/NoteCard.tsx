@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Code, Database, PenTool, Briefcase, FileText, Trash2, Download } from "lucide-react";
-import { deleteNote } from "@/app/actions";
+import { deleteNote, checkAdminStatus } from "@/app/actions";
 
 const categoryIcons = {
     "Computer Science": Code,
@@ -13,6 +13,15 @@ const categoryIcons = {
 export default function NoteCard({ note }: { note: any }) {
     const Icon = categoryIcons[note.category as keyof typeof categoryIcons] || FileText;
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useState(() => {
+        const checkAuth = async () => {
+            const status = await checkAdminStatus();
+            setIsAdmin(status);
+        };
+        checkAuth();
+    });
 
     const handleDelete = async () => {
         if (confirm("Are you sure you want to delete this note?")) {
@@ -36,14 +45,16 @@ export default function NoteCard({ note }: { note: any }) {
                     <span className="text-[10px] font-bold font-mono text-slate-500 bg-slate-50 px-2 py-1 rounded uppercase">
                         {note.date}
                     </span>
-                    <button
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                        title="Delete Note"
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                            title="Delete Note"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
                 </div>
             </div>
 
