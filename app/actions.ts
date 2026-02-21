@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectToDB } from "@/lib/db";
 import Note from "@/lib/models/Note";
 import { UTApi } from "uploadthing/server";
+import { cookies } from "next/headers";
 
 const utapi = new UTApi(); // Initialize UploadThing API
 
@@ -76,8 +77,16 @@ export async function uploadNote(formData: FormData) {
     }
 }
 
-export async function deleteNote(noteId: string, fileUrl: string) {
+export async function deleteNote(noteId: string, fileUrl: string, password?: string) {
     try {
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const cookieStore = await cookies();
+        const isAdmin = cookieStore.get("admin_auth")?.value === adminPassword;
+
+        if (!isAdmin && password !== adminPassword) {
+            return { success: false, message: "Incorrect Admin Password." };
+        }
+
         await connectToDB();
 
         // 1. Find note to get fileKey
@@ -101,6 +110,33 @@ export async function deleteNote(noteId: string, fileUrl: string) {
         console.error("Delete error:", error);
         return { success: false, message: "Failed to delete note" };
     }
+}
+
+export async function loginAdmin(password: string) {
+    if (password === process.env.ADMIN_PASSWORD) {
+        const cookieStore = await cookies();
+        cookieStore.set("admin_auth", password, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 60 * 60 * 24 * 7, // 1 week
+        });
+        return { success: true };
+    }
+    return { success: false, message: "Incorrect password" };
+}
+
+export async function logoutAdmin() {
+    const cookieStore = await cookies();
+    cookieStore.delete("admin_auth");
+    revalidatePath("/");
+    return { success: true };
+}
+
+export async function checkAdminStatus() {
+    const cookieStore = await cookies();
+    const isAdmin = cookieStore.get("admin_auth")?.value === process.env.ADMIN_PASSWORD;
+    return isAdmin;
 }
 
 export async function getNotes() {
