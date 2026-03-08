@@ -9,18 +9,17 @@ const navLinks = [
     { name: "Home", href: "/" },
     { name: "Notes", href: "#notes" },
     { name: "About", href: "#about" },
+    { name: "Feedback", href: "#feedback" },
     { name: "Contact", href: "#contact" },
 ];
 
 import { checkAdminStatus, logoutAdmin } from "@/app/actions";
 import UploadModal from "./UploadModal";
-import AdminLoginModal from "./AdminLoginModal";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
-    const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
@@ -97,11 +96,18 @@ export default function Navbar() {
                             </motion.button>
                         </div>
                     ) : (
-                        <div
-                            onDoubleClick={() => setIsAdminLoginOpen(true)}
-                            className="bg-primary/5 text-primary/40 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest cursor-default select-none border border-primary/10"
-                        >
-                            Academic Hub
+                        <div className="flex items-center gap-4">
+                            <div className="bg-primary/5 text-primary/40 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest cursor-default select-none border border-primary/10">
+                                Student Mode
+                            </div>
+                            <motion.button
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleLogout}
+                                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                                Logout
+                            </motion.button>
                         </div>
                     )}
                 </div>
@@ -146,23 +152,23 @@ export default function Navbar() {
                                     </button>
                                 </>
                             ) : (
-                                <div
-                                    onDoubleClick={() => { setIsOpen(false); setIsAdminLoginOpen(true); }}
-                                    className="text-slate-300 text-xs font-bold uppercase tracking-widest"
-                                >
-                                    Academic Hub
-                                </div>
+                                <>
+                                    <div className="text-slate-300 text-xs font-bold uppercase tracking-widest">
+                                        Student Mode
+                                    </div>
+                                    <button
+                                        onClick={() => { setIsOpen(false); handleLogout(); }}
+                                        className="text-slate-400 font-bold"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
             </nav>
             <UploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
-            <AdminLoginModal
-                isOpen={isAdminLoginOpen}
-                onClose={() => setIsAdminLoginOpen(false)}
-                onSuccess={() => setIsAdmin(true)}
-            />
         </>
     );
 }

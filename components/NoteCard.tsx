@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Code, Database, PenTool, Briefcase, FileText, Trash2, Download } from "lucide-react";
+import { Code, Database, PenTool, Briefcase, FileText, Trash2, Download, PenLine } from "lucide-react";
 import { deleteNote, checkAdminStatus } from "@/app/actions";
+import QuizModal from "./QuizModal";
 
 const categoryIcons = {
     "Computer Science": Code,
@@ -14,6 +15,7 @@ export default function NoteCard({ note }: { note: any }) {
     const Icon = categoryIcons[note.category as keyof typeof categoryIcons] || FileText;
     const [isDeleting, setIsDeleting] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isQuizOpen, setIsQuizOpen] = useState(false);
 
     useState(() => {
         const checkAuth = async () => {
@@ -70,7 +72,7 @@ export default function NoteCard({ note }: { note: any }) {
                 {note.description}
             </p>
 
-            <div className="mt-auto pt-4 border-t border-slate-50">
+            <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
                 <a
                     href={note.downloadUrl}
                     className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all"
@@ -78,7 +80,23 @@ export default function NoteCard({ note }: { note: any }) {
                     <Download size={16} />
                     Download Note
                 </a>
+
+                <button
+                    onClick={() => setIsQuizOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-full hover:bg-primary/90 shadow-sm shadow-primary/20 transition-colors"
+                >
+                    <PenLine size={14} />
+                    Test Me
+                </button>
             </div>
+            {isQuizOpen && (
+                <QuizModal
+                    isOpen={isQuizOpen}
+                    onClose={() => setIsQuizOpen(false)}
+                    noteId={note._id || note.id}
+                    noteTitle={note.title}
+                />
+            )}
         </motion.div>
     );
 }

@@ -1,10 +1,11 @@
 "use client";
 import React, { useState } from "react";
-import { X, FileText, Download, Trash2 } from "lucide-react";
+import { X, FileText, Download, Trash2, PenLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Note } from "@/data/types";
-import { deleteNote, checkAdminStatus } from "@/app/actions";
+import { deleteNote, checkAdminStatus, checkUserStatus } from "@/app/actions";
 import UploadModal from "./UploadModal";
+import QuizModal from "./QuizModal";
 import JSZip from "jszip";
 
 interface FolderViewModalProps {
@@ -18,11 +19,16 @@ export default function FolderViewModal({ isOpen, onClose, subject, notes }: Fol
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isStudent, setIsStudent] = useState(false);
+    const [isSubjectQuizOpen, setIsSubjectQuizOpen] = useState(false);
+    const [activeNoteQuiz, setActiveNoteQuiz] = useState<any>(null);
 
     useState(() => {
         const checkAuth = async () => {
-            const status = await checkAdminStatus();
-            setIsAdmin(status);
+            const adminStatus = await checkAdminStatus();
+            setIsAdmin(adminStatus);
+            const userStatus = await checkUserStatus();
+            setIsStudent(userStatus);
         };
         checkAuth();
     });
@@ -102,6 +108,18 @@ export default function FolderViewModal({ isOpen, onClose, subject, notes }: Fol
                                         {isZipping ? "Creating..." : "ZIP All"}
                                     </motion.button>
                                 )}
+                                {(isAdmin || isStudent) && notes.length > 0 && (
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setIsSubjectQuizOpen(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full transition-shadow shadow-lg shadow-purple-600/20 text-xs font-bold"
+                                        title="Generate AI Quiz for this Subject"
+                                    >
+                                        <PenLine size={14} />
+                                        Subject Quiz
+                                    </motion.button>
+                                )}
                                 {isAdmin && (
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
@@ -157,6 +175,15 @@ export default function FolderViewModal({ isOpen, onClose, subject, notes }: Fol
                                             >
                                                 <Download size={18} />
                                             </a>
+                                            {(isAdmin || isStudent) && (
+                                                <button
+                                                    onClick={() => setActiveNoteQuiz(note)}
+                                                    className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-colors"
+                                                    title="Test me on this Note"
+                                                >
+                                                    <PenLine size={18} />
+                                                </button>
+                                            )}
                                             {isAdmin && (
                                                 <button
                                                     onClick={() => handleDelete(note._id || note.id!, note.downloadUrl)}
@@ -183,6 +210,23 @@ export default function FolderViewModal({ isOpen, onClose, subject, notes }: Fol
                 onClose={() => setIsUploadOpen(false)}
                 prefilledSubject={subject}
             />
+            {isSubjectQuizOpen && (
+                <QuizModal
+                    isOpen={isSubjectQuizOpen}
+                    onClose={() => setIsSubjectQuizOpen(false)}
+                    isSubjectMode={true}
+                    subject={subject}
+                    subjectNotes={notes}
+                />
+            )}
+            {activeNoteQuiz && (
+                <QuizModal
+                    isOpen={!!activeNoteQuiz}
+                    onClose={() => setActiveNoteQuiz(null)}
+                    noteId={activeNoteQuiz._id || activeNoteQuiz.id}
+                    noteTitle={activeNoteQuiz.title}
+                />
+            )}
         </AnimatePresence>
     );
 }
