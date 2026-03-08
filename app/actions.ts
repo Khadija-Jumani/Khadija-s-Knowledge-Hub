@@ -126,9 +126,21 @@ export async function loginAdmin(password: string) {
     return { success: false, message: "Incorrect password" };
 }
 
+export async function loginUser() {
+    const cookieStore = await cookies();
+    cookieStore.set("user_auth", "true", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+    return { success: true };
+}
+
 export async function logoutAdmin() {
     const cookieStore = await cookies();
     cookieStore.delete("admin_auth");
+    cookieStore.delete("user_auth");
     revalidatePath("/");
     return { success: true };
 }
@@ -137,6 +149,12 @@ export async function checkAdminStatus() {
     const cookieStore = await cookies();
     const isAdmin = cookieStore.get("admin_auth")?.value === process.env.ADMIN_PASSWORD;
     return isAdmin;
+}
+
+export async function checkUserStatus() {
+    const cookieStore = await cookies();
+    const isUser = cookieStore.has("user_auth");
+    return isUser;
 }
 
 export async function saveNoteMetadata(data: {
@@ -184,6 +202,10 @@ export async function saveNoteMetadata(data: {
     }
 }
 
+import Feedback from "@/lib/models/Feedback";
+
+// ... existing code ...
+
 export async function getNotes() {
     let mongoNotes: any[] = [];
     let localNotes: any[] = [];
@@ -209,4 +231,66 @@ export async function getNotes() {
 
     // 3. Merge both (Cloud notes first so they appear at top)
     return [...mongoNotes, ...localNotes];
+}
+
+// --- FEEDBACK ACTIONS ---
+
+export async function submitFeedback(name: string, comment: string) {
+    try {
+        if (!name || !comment) {
+            return { success: false, message: "Name and comment are required." };
+        }
+
+        await connectToDB();
+
+        const newFeedback = new Feedback({
+            name,
+            comment
+        });
+
+        await newFeedback.save();
+        revalidatePath("/");
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Feedback submit error:", error);
+        return { success: false, message: "Failed to submit feedback. Please try again later." };
+    }
+}
+
+export async function getFeedbacks() {
+    try {
+        await connectToDB();
+        const found = await Feedback.find({}).sort({ createdAt: -1 }).limit(20); // Get latest 20
+        return JSON.parse(JSON.stringify(found));
+    } catch (error) {
+        console.error("Failed to fetch feedbacks:", error);
+        return [];
+    }
+}
+
+export async function deleteFeedback(feedbackId: string) {
+    try {
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const cookieStore = await cookies();
+        const isAdmin = cookieStore.get("admin_auth")?.value === adminPassword;
+
+        if (!isAdmin) {
+            return { success: false, message: "Unauthorized. Admin access required." };
+        }
+
+        await connectToDB();
+
+        const deletedFeedback = await Feedback.findByIdAndDelete(feedbackId);
+
+        if (!deletedFeedback) {
+            return { success: false, message: "Feedback not found." };
+        }
+
+        revalidatePath("/");
+        return { success: true };
+    } catch (error) {
+        console.error("Delete feedback error:", error);
+        return { success: false, message: "Failed to delete feedback." };
+    }
 }
