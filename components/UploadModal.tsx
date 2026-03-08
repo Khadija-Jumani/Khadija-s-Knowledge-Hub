@@ -91,11 +91,11 @@ export default function UploadModal({ isOpen, onClose, prefilledSubject }: Uploa
                         initial={{ opacity: 0, scale: 0.9, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                        className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(124,61,255,0.3)] border border-white p-8 overflow-hidden relative"
+                        className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(124,61,255,0.3)] border border-white p-6 md:p-8 relative"
                     >
                         <button
                             onClick={onClose}
-                            className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors p-2 bg-slate-50 rounded-full"
+                            className="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors p-2 bg-slate-50 rounded-full z-10"
                         >
                             <X size={20} />
                         </button>

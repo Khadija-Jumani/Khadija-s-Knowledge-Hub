@@ -1,0 +1,20 @@
+const { MongoClient } = require('mongodb');
+const MONGODB_URI = "mongodb+srv://khadijajumani:khajja123098@clothing-dataset.0d4tnps.mongodb.net/?appName=clothing-dataset";
+const DB_NAME = "university-notes";
+async function run() {
+    const client = new MongoClient(MONGODB_URI);
+    try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        const collection = db.collection('notes');
+        const notes = await collection.find({ subject: "Web Technology | CSC336" }).toArray();
+        console.log(`SUBJECT: Web Technology | CSC336`);
+        console.log(`TOTAL_NOTES: ${notes.length}`);
+        for (const n of notes) {
+            console.log(`NOTE: ${n.title} | TYPE: ${n.downloadUrl?.split('.').pop()}`);
+        }
+    } finally {
+        await client.close();
+    }
+}
+run();

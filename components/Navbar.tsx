@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ const navLinks = [
     { name: "Contact", href: "#contact" },
 ];
 
-import { checkAdminStatus, logoutAdmin } from "@/app/actions";
+import { checkAdminStatus, checkUserStatus, logoutAdmin } from "@/app/actions";
 import UploadModal from "./UploadModal";
 
 export default function Navbar() {
@@ -21,25 +22,44 @@ export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isUser, setIsUser] = useState(false);
+    const pathname = usePathname();
 
     useEffect(() => {
         const checkAuth = async () => {
-            const status = await checkAdminStatus();
-            setIsAdmin(status);
+            const adminStatus = await checkAdminStatus();
+            const userStatus = await checkUserStatus();
+            setIsAdmin(adminStatus);
+            setIsUser(userStatus);
         };
+
+        // Initial check
         checkAuth();
+
+        // Polling to catch login state changes across navigations
+        const intervalId = setInterval(checkAuth, 2000);
 
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
         };
         window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+            clearInterval(intervalId);
+        };
     }, []);
 
     const handleLogout = async () => {
         await logoutAdmin();
         setIsAdmin(false);
+        setIsUser(false);
+        window.location.href = "/login";
     };
+
+
+
+
 
     return (
         <>
@@ -54,68 +74,80 @@ export default function Navbar() {
                         Khadija's Knowledge Hub
                         <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
                     </Link>
-                    {isAdmin && (
+                    {isAdmin ? (
                         <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1 ml-0.5">Admin Mode</span>
-                    )}
+                    ) : isUser ? (
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-0.5">Student Mode</span>
+                    ) : null}
                 </div>
 
                 {/* Desktop Nav */}
-                <div className="hidden md:flex items-center gap-8">
-                    {navLinks.map((link, index) => (
-                        <motion.div
-                            key={link.name}
-                            whileHover={{ scale: 1.1, y: -2 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        >
-                            <Link
-                                href={link.href}
-                                className="text-sm font-medium text-slate-600 hover:text-primary transition-colors relative"
-                            >
-                                <span className="text-primary mr-1">0{index + 1}.</span> {link.name}
-                            </Link>
-                        </motion.div>
-                    ))}
-                    {isAdmin ? (
-                        <div className="flex items-center gap-4">
-                            <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
+                {pathname !== "/login" && (
+                    <div className="hidden md:flex items-center gap-8">
+                        {navLinks.map((link, index) => (
+                            <motion.div
+                                key={link.name}
+                                whileHover={{ scale: 1.1, y: -2 }}
                                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                                onClick={() => setIsUploadOpen(true)}
-                                className="bg-primary text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
                             >
-                                Upload Note
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleLogout}
-                                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                                Logout
-                            </motion.button>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-4">
-                            <div className="bg-primary/5 text-primary/40 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest cursor-default select-none border border-primary/10">
-                                Student Mode
+                                <Link
+                                    href={link.href}
+                                    className="text-sm font-medium text-slate-600 hover:text-primary transition-colors relative"
+                                >
+                                    <span className="text-primary mr-1">0{index + 1}.</span> {link.name}
+                                </Link>
+                            </motion.div>
+                        ))}
+                        {isAdmin ? (
+                            <div className="flex items-center gap-4">
+                                <motion.button
+                                    whileHover={{ scale: 1.05, y: -2 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                    onClick={() => setIsUploadOpen(true)}
+                                    className="bg-primary text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
+                                >
+                                    Upload Note
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.1, y: -2 }}
+                                    onClick={handleLogout}
+                                    className="text-sm font-bold text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                                >
+                                    Logout
+                                </motion.button>
                             </div>
-                            <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleLogout}
-                                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                                Logout
-                            </motion.button>
-                        </div>
-                    )}
-                </div>
+                        ) : isUser ? (
+                            <div className="flex items-center">
+                                <motion.button
+                                    whileHover={{ scale: 1.1, y: -2 }}
+                                    onClick={handleLogout}
+                                    className="text-sm font-bold text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                                >
+                                    Logout
+                                </motion.button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center">
+                                <motion.div whileHover={{ scale: 1.1, y: -2 }}>
+                                    <Link
+                                        href="/login"
+                                        className="text-sm font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                                    >
+                                        Login
+                                    </Link>
+                                </motion.div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Mobile Menu Button */}
-                <button className="md:hidden text-primary" onClick={() => setIsOpen(!isOpen)}>
-                    {isOpen ? <X size={28} /> : <Menu size={28} />}
-                </button>
+                {pathname !== "/login" && (
+                    <button className="md:hidden text-primary" onClick={() => setIsOpen(!isOpen)}>
+                        {isOpen ? <X size={28} /> : <Menu size={28} />}
+                    </button>
+                )}
 
                 {/* Mobile Nav Overlay */}
                 <AnimatePresence>
@@ -146,22 +178,29 @@ export default function Navbar() {
                                     </button>
                                     <button
                                         onClick={() => { setIsOpen(false); handleLogout(); }}
-                                        className="text-slate-400 font-bold"
+                                        className="text-xl font-heading font-medium text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            ) : isUser ? (
+                                <>
+                                    <button
+                                        onClick={() => { setIsOpen(false); handleLogout(); }}
+                                        className="text-xl font-heading font-medium text-slate-400 hover:text-primary transition-colors cursor-pointer"
                                     >
                                         Logout
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <div className="text-slate-300 text-xs font-bold uppercase tracking-widest">
-                                        Student Mode
-                                    </div>
-                                    <button
-                                        onClick={() => { setIsOpen(false); handleLogout(); }}
-                                        className="text-slate-400 font-bold"
+                                    <Link
+                                        href="/login"
+                                        onClick={() => setIsOpen(false)}
+                                        className="text-xl font-heading font-medium text-primary hover:text-primary/80 transition-colors"
                                     >
-                                        Logout
-                                    </button>
+                                        Login
+                                    </Link>
                                 </>
                             )}
                         </motion.div>

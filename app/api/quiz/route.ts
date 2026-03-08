@@ -39,22 +39,51 @@ export async function POST(req: Request) {
             });
 
             const texts = await Promise.all(extractionPromises);
-            fileText = texts.join("\n\n---\n\n");
+            // Filter out empty strings which represent 404s or failed extractions from ai-utils
+            const validTexts = texts.filter(t => t.trim().length > 0);
+
+            if (validTexts.length === 0) {
+                return NextResponse.json({ error: "None of the documents in this subject could be downloaded. They may have been deleted from the file server. Please re-upload them." }, { status: 400 });
+            }
+
+            fileText = validTexts.join("\n\n---\n\n");
             promptSubject = subject;
             promptTitleContext = "Various Subject Materials";
 
-            console.log(`Extracted total ${fileText.length} characters from subject documents. Preview:`, fileText.slice(0, 150));
+            console.log(`Extracted total ${fileText.length} characters from ${validTexts.length} valid documents. Preview:`, fileText.slice(0, 150));
+            // We already know we have at least 1 valid text, but keep the length check as a final safeguard against perfectly empty PDFs
             if (!fileText || fileText.trim().length < 50) {
-                return NextResponse.json({ error: `Could not extract enough text from the subject documents to generate a quiz. Captured length: ${fileText?.length || 0}. Preview: ${fileText?.slice(0, 50)}` }, { status: 400 });
+                return NextResponse.json({ error: `The documents in this subject don't contain enough actual text to generate a quiz. Captured length: ${fileText?.length || 0}.` }, { status: 400 });
             }
 
         } else {
             // Single Note Mode
             await connectToDB();
-            const note = await Note.findById(noteId);
+            await connectToDB();
+            let note: any = null;
+
+            try {
+                // Try MongoDB first (will throw CastError if noteId is a legacy timestamp like "1771532643561")
+                note = await Note.findById(noteId);
+            } catch (error) {
+                console.warn(`MongoDB findById failed for ID ${noteId}. Falling back to local data.`);
+            }
+
+            // Fallback for old local JSON files
+            if (!note) {
+                try {
+                    const fs = require('fs/promises');
+                    const path = require('path');
+                    const localData = await fs.readFile(path.join(process.cwd(), "data", "notes.json"), "utf-8");
+                    const localNotes = JSON.parse(localData);
+                    note = localNotes.find((n: any) => n.id === noteId);
+                } catch (localError) {
+                    console.error("Local JSON fallback also failed:", localError);
+                }
+            }
 
             if (!note) {
-                return NextResponse.json({ error: "Note not found" }, { status: 404 });
+                return NextResponse.json({ error: "Note not found in cloud or local database" }, { status: 404 });
             }
 
             if (!note.downloadUrl) {
@@ -65,10 +94,14 @@ export async function POST(req: Request) {
             try {
                 fileText = await extractTextFromUrl(note.downloadUrl, note.title);
             } catch (extractorError: any) {
-                return NextResponse.json({ error: `Extraction Debug: ${extractorError.message || extractorError}` }, { status: 400 });
+                return NextResponse.json({ error: `Could not reach the file server. The file may have been deleted or moved. Details: ${extractorError.message || extractorError}` }, { status: 400 });
             }
             promptSubject = note.subject;
             promptTitleContext = note.title;
+
+            if (fileText === "") {
+                return NextResponse.json({ error: "The file could not be downloaded from the server. It may have been deleted from UploadThing. Please re-upload the document." }, { status: 400 });
+            }
 
             console.log(`Extracted text preview:`, fileText.slice(0, 150));
             if (!fileText || fileText.trim().length < 50) {
