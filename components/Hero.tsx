@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Mail, Linkedin, Instagram, Code } from "lucide-react";
-import ProfilePic from "./WhatsApp Image 2025-10-10 at 22.53.09_3c051aa6.jpg";
+import { Mail, Linkedin, Code } from "lucide-react";
+import ProfilePic from "./ProfilePicNew.png";
 
 const roles = ["Data Analyst", "BI Analyst", "Data Engineer", "Web Developer", "Graphic Designer", "Lecturer"];
 
@@ -91,17 +91,7 @@ export default function Hero() {
                     >
                         <Linkedin size={18} /> LinkedIn
                     </motion.a>
-                    <motion.a
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        href="https://www.instagram.com/im_idealizer?igsh=MXV3cWUwbXJhOXFidQ=="
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-full font-medium shadow-sm hover:border-primary/50 transition-colors"
-                    >
-                        <Instagram size={18} /> Instagram
-                    </motion.a>
+
                 </motion.div>
             </div>
 

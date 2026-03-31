@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { Mail, Instagram } from "lucide-react";
+import { Mail } from "lucide-react";
 
 export default function ContactSection() {
     return (
@@ -25,17 +25,7 @@ export default function ContactSection() {
                     >
                         <Mail size={20} /> Email Me
                     </motion.a>
-                    <motion.a
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        href="https://www.instagram.com/im_idealizer?igsh=MXV3cWUwbXJhOXFidQ=="
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 px-10 py-5 bg-white text-slate-700 border border-slate-200 rounded-full font-bold shadow-sm hover:border-primary/50 transition-all"
-                    >
-                        <Instagram size={20} /> Instagram
-                    </motion.a>
+
                 </div>
             </motion.div>
         </section>

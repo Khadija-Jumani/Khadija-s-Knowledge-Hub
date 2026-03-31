@@ -117,7 +117,7 @@ export async function loginAdmin(password: string) {
         const cookieStore = await cookies();
         cookieStore.set("admin_auth", password, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: false, // Changed for HTTP testing
             sameSite: "strict",
             maxAge: 60 * 60 * 24 * 7, // 1 week
         });
@@ -130,7 +130,7 @@ export async function loginUser() {
     const cookieStore = await cookies();
     cookieStore.set("user_auth", "true", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: false, // Changed for HTTP testing
         sameSite: "strict",
         maxAge: 60 * 60 * 24 * 30, // 30 days
     });
